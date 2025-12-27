@@ -132,15 +132,15 @@ pub fn extract_text<S: Syntax, R: Resolver + ?Sized>(
     resolver: &R,
     f: &mut Formatter<'_>,
 ) -> std::fmt::Result {
-    let mut indentation_stack: Vec<String> = Vec::new();
+    let mut indentation_stack: Vec<&str> = vec![];
     let mut pending_indentation = false;
 
-    fn walk<S: Syntax, R: Resolver + ?Sized>(
-        node: &GreenNode,
+    fn walk<'a, S: Syntax, R: Resolver + ?Sized>(
+        node: &'a GreenNode,
         f: &mut Formatter<'_>,
-        indentation_stack: &mut Vec<String>,
+        indentation_stack: &mut Vec<&'a str>,
         pending_indentation: &mut bool,
-        resolver: &R,
+        resolver: &'a R,
     ) -> std::fmt::Result {
         for child in node.children() {
             match child {
@@ -150,7 +150,7 @@ pub fn extract_text<S: Syntax, R: Resolver + ?Sized>(
 
                     match kind {
                         Syntax2D::Indent => {
-                            indentation_stack.push(text.to_string());
+                            indentation_stack.push(text);
                             *pending_indentation = true;
                         }
                         Syntax2D::Dedent => {
