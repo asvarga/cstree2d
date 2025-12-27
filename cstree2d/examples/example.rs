@@ -12,28 +12,45 @@ pub(crate) enum TestSyntax {
 
 /**************************************************************/
 
-/// Parse a space-indented block of text.
+/// Parse a comment-and-space-indented block of text.
 fn parse<'a>(builder: &mut Builder<TestSyntax>, s: &'a str) {
     builder.start_node(TestSyntax::Root);
 
-    let mut indents = vec![0];
-    for line in s.lines() {
-        let new_indent = line.chars().take_while(|c| *c == ' ').count();
-        // do as many dedents as needed
-        while indents.last().unwrap() > &new_indent {
-            builder.dedent();
-            indents.pop();
+    let mut indents = vec![];
+    for mut line in s.lines() {
+        // chomp all matching indents out of the line
+        let mut kept = 0;
+        for indent in &indents {
+            if let Some(rest) = line.strip_prefix(indent) {
+                line = rest;
+                kept += 1;
+            } else {
+                break;
+            }
         }
-        // maybe do an indent
-        if indents.last().unwrap() < &new_indent {
-            builder.indent(&line[indents.last().unwrap().to_owned()..new_indent]);
-            indents.push(new_indent);
+
+        // dedent all unkept indents
+        builder.dedents(indents.len() - kept);
+        indents.truncate(kept);
+
+        // indent if needed
+        let new_indent_len = line.chars().take_while(|c| *c == ' ' || *c == '#').count();
+        if new_indent_len > 0 {
+            let (indent, rest) = line.split_at(new_indent_len);
+            builder.indent(indent);
+            indents.push(indent);
+            line = rest;
         }
-        builder.token(TestSyntax::Text, &line[new_indent..]);
+
+        // add the text token + newline
+        if line.len() > 0 {
+            builder.token(TestSyntax::Text, line);
+        }
         builder.newline();
     }
+
     // dedent all the way
-    for _ in 1..indents.len() {
+    for _ in 0..indents.len() {
         builder.dedent();
     }
 
@@ -44,16 +61,18 @@ fn parse<'a>(builder: &mut Builder<TestSyntax>, s: &'a str) {
 
 fn main() {
     let s = indoc! {"
+        # A simple example
         def hello_world():
             print('Hello')
             print('World')
         hello_world()
     "};
 
-    let mut builder: Builder<TestSyntax> = Builder::new();
+    let mut builder = Builder::<TestSyntax>::new();
     parse(&mut builder, s);
 
     let red = builder.red();
     println!("{}", red.debug(true));
     println!("{red}");
+    assert_eq!(red.to_string(), s);
 }
