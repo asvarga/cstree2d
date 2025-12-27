@@ -12,8 +12,10 @@ use cstree::{
     Syntax,
     build::{GreenNodeBuilder, NodeCache},
     green::GreenNode,
-    interning::Interner,
+    interning::{Interner, Resolver, TokenInterner},
+    util::NodeOrToken,
 };
+use std::fmt::{Display, Formatter};
 
 /**************************************************************/
 
@@ -21,7 +23,7 @@ use cstree::{
 ///
 /// This wraps `GreenNodeBuilder` and provides convenience methods for
 /// managing indentation tokens.
-pub struct Builder<'cache, 'interner, S: Syntax, I: Interner = cstree::interning::TokenInterner> {
+pub struct Builder<'cache, 'interner, S: Syntax, I: Interner = TokenInterner> {
     inner: GreenNodeBuilder<'cache, 'interner, Syntax2D<S>, I>,
 }
 
@@ -98,7 +100,7 @@ impl<'cache, 'interner, S: Syntax, I: Interner> Builder<'cache, 'interner, S, I>
     }
 }
 
-/// Extracts formatted text from a `GreenNode` with indentation applied.
+/// Extracts formatted text from a `GreenNode` with indentation applied, writing to a formatter.
 ///
 /// This walks the tree and:
 /// - Outputs text from `Text` tokens directly
@@ -108,20 +110,22 @@ impl<'cache, 'interner, S: Syntax, I: Interner> Builder<'cache, 'interner, S, I>
 /// # Parameters
 /// * `node` - The root node to extract text from
 /// * `resolver` - A resolver for looking up interned tokens (use the cache from `Builder::finish`)
-pub fn extract_text<S: Syntax, I: Interner>(node: &GreenNode, resolver: &I) -> String {
-    let mut output = String::new();
+/// * `f` - The formatter to write the output to
+pub fn extract_text<S: Syntax, I: Interner>(
+    node: &GreenNode,
+    resolver: &I,
+    f: &mut Formatter<'_>,
+) -> std::fmt::Result {
     let mut indentation_stack: Vec<String> = Vec::new();
     let mut pending_indentation = false;
 
-    fn walk<S: Syntax, R: cstree::interning::Resolver>(
+    fn walk<S: Syntax, R: Resolver>(
         node: &GreenNode,
-        output: &mut String,
+        f: &mut Formatter<'_>,
         indentation_stack: &mut Vec<String>,
         pending_indentation: &mut bool,
         resolver: &R,
-    ) {
-        use cstree::util::NodeOrToken;
-
+    ) -> std::fmt::Result {
         for child in node.children() {
             match child {
                 NodeOrToken::Token(token) => {
@@ -137,38 +141,73 @@ pub fn extract_text<S: Syntax, I: Interner>(node: &GreenNode, resolver: &I) -> S
                             indentation_stack.pop();
                         }
                         Syntax2D::Newline => {
-                            output.push('\n');
+                            f.write_str("\n")?;
                             *pending_indentation = !indentation_stack.is_empty();
                         }
                         Syntax2D::Token(_) => {
                             if *pending_indentation {
-                                output.push_str(&indentation_stack.concat());
+                                f.write_str(&indentation_stack.concat())?;
                                 *pending_indentation = false;
                             }
-                            output.push_str(text);
+                            f.write_str(text)?;
                         }
                     }
                 }
                 NodeOrToken::Node(child_node) => {
                     walk::<S, R>(
                         child_node,
-                        output,
+                        f,
                         indentation_stack,
                         pending_indentation,
                         resolver,
-                    );
+                    )?;
                 }
             }
         }
+        Ok(())
     }
 
     walk::<S, I>(
         node,
-        &mut output,
+        f,
         &mut indentation_stack,
         &mut pending_indentation,
         resolver,
-    );
+    )
+}
 
+/// Extracts formatted text from a `GreenNode` with indentation applied as a String.
+///
+/// This is a convenience wrapper around `extract_text` that returns a String.
+///
+/// # Parameters
+/// * `node` - The root node to extract text from
+/// * `resolver` - A resolver for looking up interned tokens (use the cache from `Builder::finish`)
+pub fn extract_text_to_string<S: Syntax, I: Interner>(node: &GreenNode, resolver: &I) -> String {
+    use std::fmt::Write;
+    let mut output = String::new();
+    write!(
+        &mut output,
+        "{}",
+        TextDisplay {
+            node,
+            resolver,
+            _phantom: std::marker::PhantomData::<S>
+        }
+    )
+    .expect("Writing to String should not fail");
     output
+}
+
+/// Helper struct to implement Display for formatted text extraction
+struct TextDisplay<'a, S, I> {
+    node: &'a GreenNode,
+    resolver: &'a I,
+    _phantom: std::marker::PhantomData<S>,
+}
+
+impl<S: Syntax, I: Interner> Display for TextDisplay<'_, S, I> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        extract_text::<S, I>(self.node, self.resolver, f)
+    }
 }

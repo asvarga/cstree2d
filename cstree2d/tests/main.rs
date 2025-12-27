@@ -1,4 +1,4 @@
-use cstree2d::{Builder, cstree::Syntax, extract_text, syntax::Syntax2D};
+use cstree2d::{Builder, cstree::Syntax, extract_text_to_string, syntax::Syntax2D};
 use indoc::indoc;
 
 /**************************************************************/
@@ -58,7 +58,7 @@ fn test_dump_text_simple() {
     let (root, cache) = builder.finish();
 
     let resolver = cache.expect("No cache");
-    let text = extract_text::<TestSyntax, _>(&root, resolver.interner());
+    let text = extract_text_to_string::<TestSyntax, _>(&root, resolver.interner());
     assert_eq!(text, "hello world");
 }
 
@@ -75,7 +75,7 @@ fn test_dump_text_with_newlines() {
     let (root, cache) = builder.finish();
 
     let resolver = cache.expect("No cache");
-    let text = extract_text::<TestSyntax, _>(&root, resolver.interner());
+    let text = extract_text_to_string::<TestSyntax, _>(&root, resolver.interner());
     assert_eq!(
         text,
         indoc! {"
@@ -103,7 +103,7 @@ fn test_dump_text_with_indentation() {
     let (root, cache) = builder.finish();
 
     let resolver = cache.expect("No cache");
-    let text = extract_text::<TestSyntax, _>(&root, resolver.interner());
+    let text = extract_text_to_string::<TestSyntax, _>(&root, resolver.interner());
     assert_eq!(
         text,
         indoc! {"
@@ -144,7 +144,7 @@ fn test_dump_text_with_nested_indentation() {
     let (root, cache) = builder.finish();
 
     let resolver = cache.expect("No cache");
-    let text = extract_text::<TestSyntax, _>(&root, resolver.interner());
+    let text = extract_text_to_string::<TestSyntax, _>(&root, resolver.interner());
     assert_eq!(
         text,
         indoc! {"
@@ -176,7 +176,7 @@ fn test_dump_text_mixed_indentation_styles() {
     let (root, cache) = builder.finish();
 
     let resolver = cache.expect("No cache");
-    let text = extract_text::<TestSyntax, _>(&root, resolver.interner());
+    let text = extract_text_to_string::<TestSyntax, _>(&root, resolver.interner());
     assert_eq!(
         text,
         indoc! {"
