@@ -26,6 +26,10 @@ impl<S: Syntax> Builder<'static, 'static, S> {
             inner: GreenNodeBuilder::new(),
         }
     }
+
+    pub fn inner(&self) -> &GreenNodeBuilder<'static, 'static, Syntax2D<S>, TokenInterner> {
+        &self.inner
+    }
 }
 
 impl<S: Syntax> Default for Builder<'static, 'static, S> {
@@ -79,6 +83,13 @@ impl<'cache, 'interner, S: Syntax, I: Interner> Builder<'cache, 'interner, S, I>
     /// needs to track the indentation text for proper text extraction.
     pub fn dedent(&mut self) {
         self.inner.static_token(Syntax2D::Dedent);
+    }
+
+    /// Adds multiple dedent tokens.
+    pub fn dedents(&mut self, i: usize) {
+        for _ in 0..i {
+            self.dedent();
+        }
     }
 
     /// Adds a newline token.
