@@ -16,19 +16,25 @@ pub(crate) enum TestSyntax {
 fn parse<'a>(builder: &mut Builder<TestSyntax>, s: &'a str) {
     builder.start_node(TestSyntax::Root);
 
-    let mut indent = 0;
+    let mut indents = vec![0];
     for line in s.lines() {
-        let leading_spaces = line.chars().take_while(|c| *c == ' ').count();
-
-        for _ in 0..(leading_spaces.saturating_sub(indent)) {
-            builder.indent(" ");
-        }
-        for _ in 0..(indent.saturating_sub(leading_spaces)) {
+        let new_indent = line.chars().take_while(|c| *c == ' ').count();
+        // do as many dedents as needed
+        while indents.last().unwrap() > &new_indent {
             builder.dedent();
+            indents.pop();
         }
-        indent = leading_spaces;
-        builder.token(TestSyntax::Text, &line[leading_spaces..]);
+        // maybe do an indent
+        if indents.last().unwrap() < &new_indent {
+            builder.indent(&line[indents.last().unwrap().to_owned()..new_indent]);
+            indents.push(new_indent);
+        }
+        builder.token(TestSyntax::Text, &line[new_indent..]);
         builder.newline();
+    }
+    // dedent all the way
+    for _ in 1..indents.len() {
+        builder.dedent();
     }
 
     builder.finish_node();
