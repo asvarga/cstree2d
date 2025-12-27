@@ -1,4 +1,4 @@
-use cstree2d::{Builder, cstree::Syntax, extract_text_to_string, syntax::Syntax2D};
+use cstree2d::{cstree::Syntax, extract_text_to_string, green::Builder, syntax::Syntax2D};
 use indoc::indoc;
 
 /**************************************************************/
