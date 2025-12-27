@@ -1,6 +1,6 @@
 # cstree2d
 
-A simple wrapper around `cstree` with support for indentation tracking.
+A simple wrapper around [cstree](https://crates.io/crates/cstree) with support for indentation tracking.
 
 ## Benefits
 
