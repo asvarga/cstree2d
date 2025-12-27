@@ -1,4 +1,4 @@
-use cstree2d::{cstree::Syntax, green::Builder, syntax::Syntax2D};
+use cstree2d::{cstree::Syntax, green::Builder};
 
 /**************************************************************/
 
@@ -8,23 +8,10 @@ pub(crate) enum TestSyntax {
     Root,
     Text,
 }
-type TestSyntax2D = Syntax2D<TestSyntax>;
 
 /**************************************************************/
 
 fn main() {
-    let tokens = [
-        TestSyntax2D::Indent,
-        TestSyntax2D::Dedent,
-        TestSyntax2D::Newline,
-        TestSyntax::Root.into(),
-        TestSyntax::Text.into(),
-    ];
-
-    for token in tokens {
-        println!("{token:?}");
-    }
-
     let mut builder: Builder<TestSyntax> = Builder::new();
     builder.start_node(TestSyntax::Root);
 

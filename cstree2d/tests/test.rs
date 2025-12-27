@@ -1,4 +1,4 @@
-use cstree2d::{cstree::Syntax, extract_text_to_string, green::Builder, syntax::Syntax2D};
+use cstree2d::{cstree::Syntax, green::Builder, syntax::Syntax2D};
 use indoc::indoc;
 
 /**************************************************************/
@@ -55,11 +55,8 @@ fn test_dump_text_simple() {
     builder.token(TestSyntax::Text, "world");
 
     builder.finish_node();
-    let (root, cache) = builder.finish();
 
-    let resolver = cache.expect("No cache");
-    let text = extract_text_to_string::<TestSyntax, _>(&root, resolver.interner());
-    assert_eq!(text, "hello world");
+    assert_eq!(builder.red().to_string(), "hello world");
 }
 
 #[test]
@@ -72,12 +69,9 @@ fn test_dump_text_with_newlines() {
     builder.token(TestSyntax::Text, "line2");
 
     builder.finish_node();
-    let (root, cache) = builder.finish();
 
-    let resolver = cache.expect("No cache");
-    let text = extract_text_to_string::<TestSyntax, _>(&root, resolver.interner());
     assert_eq!(
-        text,
+        builder.red().to_string(),
         indoc! {"
             line1
             line2"
@@ -100,12 +94,9 @@ fn test_dump_text_with_indentation() {
     builder.dedent();
 
     builder.finish_node();
-    let (root, cache) = builder.finish();
 
-    let resolver = cache.expect("No cache");
-    let text = extract_text_to_string::<TestSyntax, _>(&root, resolver.interner());
     assert_eq!(
-        text,
+        builder.red().to_string(),
         indoc! {"
             line1
                 indented
@@ -141,12 +132,9 @@ fn test_dump_text_with_nested_indentation() {
     builder.token(TestSyntax::Text, "end");
 
     builder.finish_node();
-    let (root, cache) = builder.finish();
 
-    let resolver = cache.expect("No cache");
-    let text = extract_text_to_string::<TestSyntax, _>(&root, resolver.interner());
     assert_eq!(
-        text,
+        builder.red().to_string(),
         indoc! {"
             start
               level1
@@ -173,12 +161,9 @@ fn test_dump_text_mixed_indentation_styles() {
     builder.dedent();
 
     builder.finish_node();
-    let (root, cache) = builder.finish();
 
-    let resolver = cache.expect("No cache");
-    let text = extract_text_to_string::<TestSyntax, _>(&root, resolver.interner());
     assert_eq!(
-        text,
+        builder.red().to_string(),
         indoc! {"
             start
                 # comment"
