@@ -157,12 +157,19 @@ pub fn extract_text<S: Syntax, R: Resolver + ?Sized>(
                             indentation_stack.pop();
                         }
                         Syntax2D::Newline => {
+                            if *pending_indentation {
+                                for indent in indentation_stack.iter() {
+                                    f.write_str(indent)?;
+                                }
+                            }
                             f.write_str("\n")?;
                             *pending_indentation = !indentation_stack.is_empty();
                         }
                         Syntax2D::Token(_) => {
                             if *pending_indentation {
-                                f.write_str(&indentation_stack.concat())?;
+                                for indent in indentation_stack.iter() {
+                                    f.write_str(indent)?;
+                                }
                                 *pending_indentation = false;
                             }
                             f.write_str(text)?;

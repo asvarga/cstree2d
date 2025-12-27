@@ -61,11 +61,10 @@ fn parse<'a>(builder: &mut Builder<TestSyntax>, s: &'a str) {
 
 fn main() {
     let s = indoc! {"
-        # A simple example
         def hello_world():
             print('Hello')
             print('World')
-        hello_world()
+        # hello_world()
     "};
 
     let mut builder = Builder::<TestSyntax>::new();
