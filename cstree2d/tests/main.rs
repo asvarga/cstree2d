@@ -1,37 +1,14 @@
-use cstree2d::{
-    Builder,
-    cstree::{RawSyntaxKind, Syntax},
-    extract_text,
-    syntax::Syntax2D,
-};
+use cstree2d::{Builder, cstree::Syntax, extract_text, syntax::Syntax2D};
 use indoc::indoc;
 
 /**************************************************************/
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Syntax)]
+#[repr(u32)]
 pub(crate) enum TestSyntax {
     Root,
     Text,
 }
-
-impl Syntax for TestSyntax {
-    fn from_raw(raw: RawSyntaxKind) -> Self {
-        match raw.0 {
-            0 => TestSyntax::Root,
-            1 => TestSyntax::Text,
-            _ => panic!("Invalid raw syntax kind: {}", raw.0),
-        }
-    }
-
-    fn into_raw(self) -> RawSyntaxKind {
-        RawSyntaxKind(self as u32)
-    }
-
-    fn static_text(self) -> Option<&'static str> {
-        None
-    }
-}
-
 type TestSyntax2D = Syntax2D<TestSyntax>;
 
 /**************************************************************/

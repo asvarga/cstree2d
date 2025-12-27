@@ -7,6 +7,9 @@ version = "0.1.0"
 cstree = {workspace = true}
 indoc = {workspace = true}
 
+[dev-dependencies]
+cstree = {workspace = true, features = ["derive"]}
+
 [lints]
 workspace = true
 
