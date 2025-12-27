@@ -36,8 +36,10 @@ impl<S: Syntax> Syntax for Syntax2D<S> {
 
     fn static_text(self) -> Option<&'static str> {
         match self {
+            Syntax2D::Indent => None,
+            Syntax2D::Dedent => Some(""),
+            Syntax2D::Newline => Some("\n"),
             Syntax2D::Token(s) => s.static_text(),
-            _ => None,
         }
     }
 }

@@ -78,12 +78,12 @@ impl<'cache, 'interner, S: Syntax, I: Interner> Builder<'cache, 'interner, S, I>
     /// Note: The dedent token stores an empty string since only the indent token
     /// needs to track the indentation text for proper text extraction.
     pub fn dedent(&mut self) {
-        self.inner.token(Syntax2D::Dedent, "");
+        self.inner.static_token(Syntax2D::Dedent);
     }
 
     /// Adds a newline token.
     pub fn newline(&mut self) {
-        self.inner.token(Syntax2D::Newline, "\n");
+        self.inner.static_token(Syntax2D::Newline);
     }
 
     /// Finishes building and returns the root green node.
