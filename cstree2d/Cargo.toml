@@ -12,7 +12,3 @@ cstree = {workspace = true, features = ["derive"]}
 
 [lints]
 workspace = true
-
-[[example]]
-name = "example"
-path = "examples/example.rs"
