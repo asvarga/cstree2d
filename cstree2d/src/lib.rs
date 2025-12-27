@@ -1,0 +1,174 @@
+//! A wrapper around `cstree` with support for indentation tracking.
+//!
+//! This crate provides special token types for managing indentation-aware
+//! syntax trees, particularly useful for indentation-sensitive languages.
+
+pub mod syntax;
+
+pub use cstree;
+
+use crate::syntax::Syntax2D;
+use cstree::{
+    Syntax,
+    build::{GreenNodeBuilder, NodeCache},
+    green::GreenNode,
+    interning::Interner,
+};
+
+/**************************************************************/
+
+/// Builder for creating indentation-aware syntax trees.
+///
+/// This wraps `GreenNodeBuilder` and provides convenience methods for
+/// managing indentation tokens.
+pub struct Builder<'cache, 'interner, S: Syntax, I: Interner = cstree::interning::TokenInterner> {
+    inner: GreenNodeBuilder<'cache, 'interner, Syntax2D<S>, I>,
+}
+
+impl<S: Syntax> Builder<'static, 'static, S> {
+    /// Creates a new builder with default settings.
+    pub fn new() -> Self {
+        Self {
+            inner: GreenNodeBuilder::new(),
+        }
+    }
+}
+
+impl<S: Syntax> Default for Builder<'static, 'static, S> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl<'cache, 'interner, S: Syntax, I: Interner> Builder<'cache, 'interner, S, I> {
+    /// Creates a new builder with a custom cache.
+    pub fn with_cache(cache: &'cache mut NodeCache<'interner, I>) -> Self {
+        Self {
+            inner: GreenNodeBuilder::with_cache(cache),
+        }
+    }
+
+    /// Creates a new builder with a custom interner.
+    pub fn with_interner(interner: &'interner mut I) -> Self {
+        Self {
+            inner: GreenNodeBuilder::with_interner(interner),
+        }
+    }
+
+    /// Starts a new node with the given inner syntax kind.
+    ///
+    /// This is a convenience method equivalent to `start_node(Syntax2D::Token(kind))`.
+    pub fn start_node(&mut self, kind: S) {
+        self.inner.start_node(Syntax2D::Token(kind));
+    }
+
+    /// Finishes the current node.
+    pub fn finish_node(&mut self) {
+        self.inner.finish_node();
+    }
+
+    /// Adds a token to the current node with the given inner syntax kind.
+    ///
+    /// This is a convenience method equivalent to `token(Syntax2D::Token(kind), text)`.
+    pub fn token(&mut self, kind: S, text: &str) {
+        self.inner.token(Syntax2D::Token(kind), text);
+    }
+
+    /// Adds an indent token with the given indentation string.
+    pub fn indent(&mut self, indent_str: &str) {
+        self.inner.token(Syntax2D::Indent, indent_str);
+    }
+
+    /// Adds a dedent token.
+    ///
+    /// Note: The dedent token stores an empty string since only the indent token
+    /// needs to track the indentation text for proper text extraction.
+    pub fn dedent(&mut self) {
+        self.inner.token(Syntax2D::Dedent, "");
+    }
+
+    /// Adds a newline token.
+    pub fn newline(&mut self) {
+        self.inner.token(Syntax2D::Newline, "\n");
+    }
+
+    /// Finishes building and returns the root green node.
+    pub fn finish(self) -> (GreenNode, Option<NodeCache<'interner, I>>) {
+        self.inner.finish()
+    }
+}
+
+/// Extracts formatted text from a `GreenNode` with indentation applied.
+///
+/// This walks the tree and:
+/// - Outputs text from `Text` tokens directly
+/// - Tracks indentation from `Indent`/`Dedent` tokens
+/// - Applies current indentation after each `Newline` token
+///
+/// # Parameters
+/// * `node` - The root node to extract text from
+/// * `resolver` - A resolver for looking up interned tokens (use the cache from `Builder::finish`)
+pub fn extract_text<S: Syntax, I: Interner>(node: &GreenNode, resolver: &I) -> String {
+    let mut output = String::new();
+    let mut indentation_stack: Vec<String> = Vec::new();
+    let mut pending_indentation = false;
+
+    fn walk<S: Syntax, R: cstree::interning::Resolver>(
+        node: &GreenNode,
+        output: &mut String,
+        indentation_stack: &mut Vec<String>,
+        pending_indentation: &mut bool,
+        resolver: &R,
+    ) {
+        use cstree::util::NodeOrToken;
+
+        for child in node.children() {
+            match child {
+                NodeOrToken::Token(token) => {
+                    let kind = Syntax2D::<S>::from_raw(token.kind());
+                    let text = token.text(resolver).unwrap_or("");
+
+                    match kind {
+                        Syntax2D::Indent => {
+                            indentation_stack.push(text.to_string());
+                            *pending_indentation = true;
+                        }
+                        Syntax2D::Dedent => {
+                            indentation_stack.pop();
+                        }
+                        Syntax2D::Newline => {
+                            output.push('\n');
+                            *pending_indentation = !indentation_stack.is_empty();
+                        }
+                        Syntax2D::Token(_) => {
+                            if *pending_indentation {
+                                output.push_str(&indentation_stack.concat());
+                                *pending_indentation = false;
+                            }
+                            output.push_str(text);
+                        }
+                    }
+                }
+                NodeOrToken::Node(child_node) => {
+                    walk::<S, R>(
+                        child_node,
+                        output,
+                        indentation_stack,
+                        pending_indentation,
+                        resolver,
+                    );
+                }
+            }
+        }
+    }
+
+    walk::<S, I>(
+        node,
+        &mut output,
+        &mut indentation_stack,
+        &mut pending_indentation,
+        resolver,
+    );
+
+    output
+}
