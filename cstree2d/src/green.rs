@@ -1,9 +1,10 @@
-use crate::syntax::Syntax2D;
+use crate::{red::ResolvedNode2D, syntax::Syntax2D};
 use cstree::{
     Syntax,
     build::{GreenNodeBuilder, NodeCache},
     green::GreenNode,
     interning::{Interner, Resolver, TokenInterner},
+    syntax::ResolvedNode,
     util::NodeOrToken,
 };
 use std::fmt::Formatter;
@@ -88,6 +89,19 @@ impl<'cache, 'interner, S: Syntax, I: Interner> Builder<'cache, 'interner, S, I>
     /// Finishes building and returns the root green node.
     pub fn finish(self) -> (GreenNode, Option<NodeCache<'interner, I>>) {
         self.inner.finish()
+    }
+}
+
+impl<S: Syntax, I: Interner + 'static> Builder<'static, 'static, S, I> {
+    /// Consumes the builder and returns a resolved red tree node.
+    ///
+    /// This method is only available when the builder owns its interner (i.e., when both
+    /// lifetimes are `'static`), which is the case when using `Builder::new()`.
+    pub fn red(self) -> ResolvedNode2D<S> {
+        let (green, cache) = self.finish();
+        let interner = cache.unwrap().into_interner().unwrap();
+        let root: ResolvedNode<Syntax2D<S>> = ResolvedNode::new_root_with_resolver(green, interner);
+        ResolvedNode2D::new(root)
     }
 }
 
