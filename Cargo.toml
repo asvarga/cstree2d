@@ -1,0 +1,11 @@
+[package]
+edition = "2024"
+name = "cstree2d"
+version = "0.1.0"
+
+[dependencies]
+cstree = {workspace = true}
+indoc = {workspace = true}
+
+[lints]
+workspace = true
