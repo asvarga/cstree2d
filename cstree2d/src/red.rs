@@ -18,6 +18,15 @@ impl<S: Syntax> ResolvedNode2D<S> {
         Self { inner }
     }
 
+    pub fn inner(&self) -> &ResolvedNode<Syntax2D<S>> {
+        &self.inner
+    }
+
+    pub fn debug(&self, recursive: bool) -> String {
+        let resolver = self.inner.resolver();
+        self.inner.debug(&**resolver, recursive)
+    }
+
     /// Returns the unterlying green tree node of this node.
     pub fn green(&self) -> &GreenNode {
         self.inner.green()
@@ -41,6 +50,15 @@ pub struct SyntaxNode2D<S: Syntax> {
 impl<S: Syntax> SyntaxNode2D<S> {
     pub fn new(inner: SyntaxNode<Syntax2D<S>>) -> Self {
         Self { inner }
+    }
+
+    pub fn inner(&self) -> &SyntaxNode<Syntax2D<S>> {
+        &self.inner
+    }
+
+    pub fn debug(&self, recursive: bool) -> Option<String> {
+        let resolver = self.inner.resolver()?;
+        Some(self.inner.debug(&**resolver, recursive))
     }
 
     /// Returns the unterlying green tree node of this node.
